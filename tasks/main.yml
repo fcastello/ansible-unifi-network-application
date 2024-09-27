@@ -1,0 +1,46 @@
+---
+- name: Install required apt packages
+  ansible.builtin.apt:
+    pkg:
+      - ca-certificates
+      - apt-transport-https
+      - gnupg
+      - curl
+    state: present
+
+- name: Add mongodb gpg apt key
+  ansible.builtin.shell:
+    cmd: 'set -o pipefail && curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg > /dev/null'
+    executable: /bin/bash
+  changed_when: false
+
+# Mongo repo is pinned to jammy since there is no support for noble for 7.0
+- name: Add mongo apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] \
+          https://repo.mongodb.org/apt/ubuntu \
+          jammy/mongodb-org/7.0 multiverse"
+    state: present
+
+- name: Install mongodb
+  ansible.builtin.apt:
+    name: mongodb-org
+    update_cache: true
+    state: present
+
+- name: Download unifi repo gpg keu
+  ansible.builtin.get_url:
+    url: https://dl.ui.com/unifi/unifi-repo.gpg
+    dest: /etc/apt/trusted.gpg.d/unifi-repo.gpg
+    mode: '0644'
+
+- name: Add unifi apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [ arch=amd64,arm64 ] https://www.ui.com/downloads/unifi/debian stable ubiquiti"
+    state: present
+
+- name: Install unifi network applicaiton
+  ansible.builtin.apt:
+    name: unifi
+    update_cache: true
+    state: present
